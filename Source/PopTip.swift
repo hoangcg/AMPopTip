@@ -542,12 +542,12 @@ open class PopTip: UIView {
         if #available(iOS 13.0, *) {
             NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationActive), name: UIScene.didActivateNotification, object: nil)
         } else {
-            NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationActive), name: NSNotification.Name.UIApplicationDidBecomeActive, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationActive), name: UIApplication.didBecomeActiveNotification, object: nil)
         }
         if #available(iOS 13.0, *) {
             NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationResignActive), name: UIScene.willDeactivateNotification, object: nil)
         } else {
-            NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationResignActive), name: NSNotification.Name.UIApplicationWillResignActive, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationResignActive), name: UIApplication.willResignActiveNotification, object: nil)
         }
     }
   }
@@ -703,7 +703,7 @@ open class PopTip: UIView {
     maxWidth = controller.view.frame.size.width
     self.customView?.removeFromSuperview()
     self.customView = controller.view
-    parent.addChildViewController(controller)
+      parent.addChild(controller)
     addSubview(controller.view)
     controller.didMove(toParent: parent)
     controller.view.layoutIfNeeded()
@@ -759,9 +759,9 @@ open class PopTip: UIView {
     }
 
     let completion = {
-      self.hostingController?.willMove(toParentViewController: nil)
+        self.hostingController?.willMove(toParent: nil)
       self.customView?.removeFromSuperview()
-      self.hostingController?.removeFromParentViewController()
+        self.hostingController?.removeFromParent()
       self.customView = nil
       self.dismissActionAnimation()
       self.bubbleLayer = nil
