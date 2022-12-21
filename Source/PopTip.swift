@@ -541,6 +541,12 @@ open class PopTip: UIView {
     if isApplicationInBackground == nil {
       NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationActive), name: UIApplication.didBecomeActiveNotification, object: nil)
       NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationResignActive), name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationActive), name: NSNotification.Name.UIApplicationDidBecomeActive, object: nil)
+        if #available(iOS 13.0, *) {
+            NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationResignActive), name: UIScene.willDeactivateNotification, object: nil)
+        } else {
+            NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationResignActive), name: NSNotification.Name.UIApplicationWillResignActive, object: nil)
+        }
     }
   }
 
@@ -751,9 +757,9 @@ open class PopTip: UIView {
     }
 
     let completion = {
-      self.hostingController?.willMove(toParent: nil)
+      self.hostingController?.willMove(toParentViewController: nil)
       self.customView?.removeFromSuperview()
-      self.hostingController?.removeFromParent()
+      self.hostingController?.removeFromParentViewController()
       self.customView = nil
       self.dismissActionAnimation()
       self.bubbleLayer = nil
