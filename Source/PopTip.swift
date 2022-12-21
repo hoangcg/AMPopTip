@@ -539,9 +539,11 @@ open class PopTip: UIView {
     }
 
     if isApplicationInBackground == nil {
-      NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationActive), name: UIApplication.didBecomeActiveNotification, object: nil)
-      NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationResignActive), name: UIApplication.willResignActiveNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationActive), name: NSNotification.Name.UIApplicationDidBecomeActive, object: nil)
+        if #available(iOS 13.0, *) {
+            NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationActive), name: UIScene.didActivateNotification, object: nil)
+        } else {
+            NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationActive), name: NSNotification.Name.UIApplicationDidBecomeActive, object: nil)
+        }
         if #available(iOS 13.0, *) {
             NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationResignActive), name: UIScene.willDeactivateNotification, object: nil)
         } else {
@@ -701,7 +703,7 @@ open class PopTip: UIView {
     maxWidth = controller.view.frame.size.width
     self.customView?.removeFromSuperview()
     self.customView = controller.view
-    parent.addChild(controller)
+    parent.addChildViewController(controller)
     addSubview(controller.view)
     controller.didMove(toParent: parent)
     controller.view.layoutIfNeeded()
