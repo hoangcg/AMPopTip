@@ -245,6 +245,8 @@ open class PopTip: UIView {
   open private(set) var direction = PopTipDirection.none
   /// Holds the readonly BOOL with the poptip animation state.
   open private(set) var isAnimating: Bool = false
+  /// Holds the readonly BOOL with the state of the poptip exit animation.
+  open private(set) var isPerformingExitAnimation: Bool = false
   /// The view that dims the background (including the button that triggered PopTip.
   /// The mask by appears with fade in effect only.
   open private(set) var backgroundMask: UIView?
@@ -539,16 +541,8 @@ open class PopTip: UIView {
     }
 
     if isApplicationInBackground == nil {
-        if #available(iOS 13.0, *) {
-            NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationActive), name: UIScene.didActivateNotification, object: nil)
-        } else {
-            NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationActive), name: UIApplication.didBecomeActiveNotification, object: nil)
-        }
-        if #available(iOS 13.0, *) {
-            NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationResignActive), name: UIScene.willDeactivateNotification, object: nil)
-        } else {
-            NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationResignActive), name: UIApplication.willResignActiveNotification, object: nil)
-        }
+      NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationActive), name: UIApplication.didBecomeActiveNotification, object: nil)
+      NotificationCenter.default.addObserver(self, selector: #selector(PopTip.handleApplicationResignActive), name: UIApplication.willResignActiveNotification, object: nil)
     }
   }
 
@@ -697,13 +691,19 @@ open class PopTip: UIView {
     containerView = view
     let controller = UIHostingController(rootView: rootView)
     controller.view.backgroundColor = .clear
-    let maxContentWidth = UIScreen.main.bounds.width - (self.edgeMargin * 2) - self.edgeInsets.horizontal - (self.padding * 2)
+    let maxContentWidth: CGFloat
+    if let window = parent.view.window {
+      maxContentWidth = window.bounds.width - (self.edgeMargin * 2) - self.edgeInsets.horizontal - (self.padding * 2)
+    }
+    else {
+      maxContentWidth = .greatestFiniteMagnitude
+    }
     let sizeThatFits = controller.view.sizeThatFits(CGSize(width: maxContentWidth, height: CGFloat.greatestFiniteMagnitude))
     controller.view.frame.size = CGSize(width: min(sizeThatFits.width, maxContentWidth), height: sizeThatFits.height)
     maxWidth = controller.view.frame.size.width
     self.customView?.removeFromSuperview()
     self.customView = controller.view
-      parent.addChild(controller)
+    parent.addChild(controller)
     addSubview(controller.view)
     controller.didMove(toParent: parent)
     controller.view.layoutIfNeeded()
@@ -759,9 +759,9 @@ open class PopTip: UIView {
     }
 
     let completion = {
-        self.hostingController?.willMove(toParent: nil)
+      self.hostingController?.willMove(toParent: nil)
       self.customView?.removeFromSuperview()
-        self.hostingController?.removeFromParent()
+      self.hostingController?.removeFromParent()
       self.customView = nil
       self.dismissActionAnimation()
       self.bubbleLayer = nil
@@ -771,12 +771,14 @@ open class PopTip: UIView {
       self.layer.removeAllAnimations()
       self.transform = .identity
       self.isAnimating = false
+      self.isPerformingExitAnimation = false
       self.dismissHandler?(self)
     }
 
     if isApplicationInBackground ?? false {
       completion()
     } else {
+      isPerformingExitAnimation = true
       performExitAnimation(completion: completion)
     }
   }
@@ -825,6 +827,10 @@ open class PopTip: UIView {
 
     setNeedsLayout()
     performEntranceAnimation {
+      guard !self.isPerformingExitAnimation && self.isVisible else {
+        return
+      }
+        
       self.customView?.layoutIfNeeded()
 
       if let tapRemoveGesture = self.tapToRemoveGestureRecognizer {
